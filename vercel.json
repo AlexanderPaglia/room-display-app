@@ -1,0 +1,14 @@
+{
+  "version": 2,
+  "functions": {
+    "api/status.js": {
+      "runtime": "nodejs18.x"
+    }
+  },
+  "rewrites": [
+    {
+      "source": "/api/status",
+      "destination": "/api/status"
+    }
+  ]
+}
