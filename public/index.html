@@ -282,7 +282,7 @@
 
     <script>
         // Configuration - Backend API URL
-        const API_BASE_URL = 'http://localhost:3000/api';
+        const API_BASE_URL = 'https://room-display-app.vercel.app/api';
         
         let eventsData = [];
         let isConnected = false;
@@ -342,7 +342,7 @@
             try {
                 console.log('Fetching calendar data from:', `${API_BASE_URL}/room/status`);
                 
-                const response = await fetch(`${API_BASE_URL}/room/status`);
+                const response = await fetch(`${API_BASE_URL}/status`);
                 
                 if (!response.ok) {
                     throw new Error(`HTTP ${response.status}: ${response.statusText}`);
