@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Driven Boardroom - Live Display</title>
+    <link rel="manifest" href="/manifest.json">
     <style>
         * {
             margin: 0;
@@ -517,5 +518,12 @@
         console.log('📧 Room Email: driven.mtr@sld.com');
         console.log('🔧 Tenant ID: ae195480-3465-4928-b5ce-dd93fb93cebf');
     </script>
+    <script>
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+          navigator.serviceWorker.register('/sw.js');
+        });
+      }
+</script>
 </body>
 </html>
