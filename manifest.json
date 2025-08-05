@@ -1,0 +1,16 @@
+{
+  "name": "Room Display App",
+  "short_name": "Room Display",
+  "start_url": "/",
+  "display": "fullscreen",
+  "background_color": "#222222",
+  "theme_color": "#222222",
+  "description": "A display for meeting room status.",
+  "icons": [
+    {
+      "src": "/images/icon-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}
