@@ -1,14 +1,9 @@
 {
   "version": 2,
-  "functions": {
-    "api/status.js": {
-      "runtime": "nodejs18.x"
-    }
-  },
-  "rewrites": [
+  "builds": [
     {
-      "source": "/api/status",
-      "destination": "/api/status"
+      "src": "api/status.js",
+      "use": "@vercel/node"
     }
   ]
 }
