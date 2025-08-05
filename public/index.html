@@ -446,7 +446,7 @@
         async function testConnection() {
             try {
                 console.log('Testing API connection...');
-                const response = await fetch(`${API_BASE_URL}/test`);
+                const response = await fetch(`${API_BASE_URL}/status`);
                 const data = await response.json();
                 
                 console.log('API test result:', data);
