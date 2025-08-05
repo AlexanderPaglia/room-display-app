@@ -1,0 +1,521 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Driven Boardroom - Live Display</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, rgba(0,0,0,0.7), rgba(0,0,0,0.5)), 
+                        url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><defs><pattern id="grid" width="10" height="10" patternUnits="userSpaceOnUse"><path d="M 10 0 L 0 0 0 10" fill="none" stroke="%23333" stroke-width="0.5"/></pattern></defs><rect width="100" height="100" fill="%23f0f0f0"/><rect width="100" height="100" fill="url(%23grid)"/></svg>');
+            color: white;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .header {
+            padding: 30px;
+            text-align: center;
+            background: rgba(0,0,0,0.3);
+            backdrop-filter: blur(10px);
+        }
+
+        .room-title {
+            display: none;
+        }
+
+        .status {
+            font-size: 2.5rem;
+            font-weight: 600;
+            color: #4CAF50;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            margin-bottom: 20px;
+        }
+
+        .status.occupied {
+            color: #f44336;
+        }
+
+        .status.loading {
+            color: #FF9800;
+        }
+
+        .status.error {
+            color: #f44336;
+        }
+
+        .current-time {
+            font-size: 1.2rem;
+            opacity: 0.8;
+            font-weight: 300;
+        }
+
+        .content {
+            flex: 1;
+            padding: 40px;
+            display: flex;
+            gap: 60px;
+            align-items: flex-start;
+        }
+
+        .next-booking {
+            flex: 1;
+            background: rgba(255,255,255,0.1);
+            backdrop-filter: blur(15px);
+            border-radius: 20px;
+            padding: 40px;
+            border: 1px solid rgba(255,255,255,0.2);
+        }
+
+        .next-label {
+            font-size: 1.8rem;
+            font-weight: 300;
+            margin-bottom: 30px;
+            opacity: 0.9;
+            text-align: center;
+        }
+
+        .booking-time {
+            font-size: 3rem;
+            font-weight: 600;
+            text-align: center;
+            margin-bottom: 20px;
+            color: #4CAF50;
+        }
+
+        .booking-name {
+            font-size: 2.5rem;
+            font-weight: 400;
+            text-align: center;
+            margin-bottom: 15px;
+        }
+
+        .booking-email {
+            display: none;
+        }
+
+        .schedule {
+            flex: 1;
+            background: rgba(255,255,255,0.1);
+            backdrop-filter: blur(15px);
+            border-radius: 20px;
+            padding: 40px;
+            border: 1px solid rgba(255,255,255,0.2);
+        }
+
+        .schedule-title {
+            font-size: 1.8rem;
+            font-weight: 300;
+            margin-bottom: 30px;
+            text-align: center;
+            opacity: 0.9;
+        }
+
+        .event {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 20px 0;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+        }
+
+        .event:last-child {
+            border-bottom: none;
+        }
+
+        .event-time {
+            font-size: 1.4rem;
+            font-weight: 500;
+            color: #4CAF50;
+            min-width: 140px;
+        }
+
+        .event-details {
+            flex: 1;
+            margin-left: 30px;
+        }
+
+        .event-name {
+            font-size: 1.6rem;
+            font-weight: 400;
+            margin-bottom: 5px;
+        }
+
+        .event-email {
+            display: none;
+        }
+
+        .date-display {
+            position: absolute;
+            bottom: 30px;
+            right: 30px;
+            font-size: 1.1rem;
+            opacity: 0.6;
+            font-weight: 300;
+        }
+
+        .connection-status {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            font-size: 0.9rem;
+            padding: 8px 16px;
+            border-radius: 20px;
+            backdrop-filter: blur(10px);
+        }
+
+        .connection-status.connected {
+            background: rgba(76, 175, 80, 0.2);
+            color: #4CAF50;
+            border: 1px solid rgba(76, 175, 80, 0.3);
+        }
+
+        .connection-status.disconnected {
+            background: rgba(244, 67, 54, 0.2);
+            color: #f44336;
+            border: 1px solid rgba(244, 67, 54, 0.3);
+        }
+
+        .connection-status.loading {
+            background: rgba(255, 152, 0, 0.2);
+            color: #FF9800;
+            border: 1px solid rgba(255, 152, 0, 0.3);
+        }
+
+        .room-info {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            font-size: 0.9rem;
+            padding: 8px 16px;
+            border-radius: 20px;
+            backdrop-filter: blur(10px);
+            background: rgba(255,255,255,0.1);
+            color: rgba(255,255,255,0.8);
+            border: 1px solid rgba(255,255,255,0.2);
+        }
+
+        .no-events {
+            text-align: center;
+            font-size: 1.4rem;
+            opacity: 0.7;
+            padding: 40px 20px;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.7; }
+        }
+
+        .status.occupied {
+            animation: pulse 2s infinite;
+        }
+
+        .loading-spinner {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid rgba(255,255,255,0.3);
+            border-radius: 50%;
+            border-top-color: #fff;
+            animation: spin 1s ease-in-out infinite;
+            margin-left: 10px;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .last-updated {
+            position: absolute;
+            bottom: 30px;
+            left: 30px;
+            font-size: 0.9rem;
+            opacity: 0.5;
+            font-weight: 300;
+        }
+    </style>
+</head>
+<body>
+    <div class="room-info">
+        📧 driven.mtr@sld.com
+    </div>
+
+    <div class="connection-status loading" id="connectionStatus">
+        <span id="connectionText">Connecting...</span>
+    </div>
+
+    <div class="header">
+        <div class="room-title">DRIVEN BOARDROOM</div>
+        <div class="status loading" id="roomStatus">LOADING<span class="loading-spinner"></span></div>
+        <div class="current-time" id="currentTime"></div>
+    </div>
+
+    <div class="content">
+        <div class="next-booking">
+            <div class="next-label">Next</div>
+            <div class="booking-time" id="nextTime">Loading...</div>
+            <div class="booking-name" id="nextName">Connecting to calendar...</div>
+            <div class="booking-email" id="nextEmail"></div>
+        </div>
+
+        <div class="schedule">
+            <div class="schedule-title">TODAY</div>
+            <div id="todayEvents">
+                <div class="no-events">Loading today's events...</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="date-display" id="dateDisplay"></div>
+    <div class="last-updated" id="lastUpdated"></div>
+
+    <script>
+        // Configuration - Backend API URL
+        const API_BASE_URL = 'https://room-display-app.vercel.app/api';
+        
+        let eventsData = [];
+        let isConnected = false;
+        let retryCount = 0;
+        const MAX_RETRIES = 5;
+        let lastUpdateTime = null;
+
+        function updateTime() {
+            const now = new Date();
+            const timeString = now.toLocaleTimeString('en-US', { 
+                hour12: true, 
+                hour: '2-digit', 
+                minute: '2-digit',
+                second: '2-digit'
+            });
+            document.getElementById('currentTime').textContent = timeString;
+            
+            const dateString = now.toLocaleDateString('en-US', {
+                weekday: 'long',
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric'
+            });
+            document.getElementById('dateDisplay').textContent = dateString;
+        }
+
+        function updateLastUpdated() {
+            if (lastUpdateTime) {
+                const timeString = lastUpdateTime.toLocaleTimeString('en-US', { 
+                    hour12: true, 
+                    hour: '2-digit', 
+                    minute: '2-digit'
+                });
+                document.getElementById('lastUpdated').textContent = `Last updated: ${timeString}`;
+            }
+        }
+
+        function updateConnectionStatus(connected, message = '') {
+            const statusElement = document.getElementById('connectionStatus');
+            const textElement = document.getElementById('connectionText');
+            
+            isConnected = connected;
+            
+            if (connected) {
+                statusElement.className = 'connection-status connected';
+                textElement.textContent = '● Live';
+                retryCount = 0;
+                lastUpdateTime = new Date();
+                updateLastUpdated();
+            } else {
+                statusElement.className = 'connection-status disconnected';
+                textElement.textContent = message || '● Disconnected';
+            }
+        }
+
+        async function fetchCalendarData() {
+            try {
+                console.log('Fetching calendar data from:', `${API_BASE_URL}/room/status`);
+                
+                const response = await fetch(`${API_BASE_URL}/status`);
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+                
+                const data = await response.json();
+                console.log('Calendar data received:', data);
+                
+                if (!data.success) {
+                    throw new Error(data.error || 'API returned error');
+                }
+                
+                updateConnectionStatus(true);
+                updateRoomStatus(data);
+                
+                // Also fetch today's events for the schedule
+                fetchTodayEvents();
+                
+            } catch (error) {
+                console.error('Error fetching calendar data:', error);
+                updateConnectionStatus(false, `● Error (${retryCount + 1}/${MAX_RETRIES})`);
+                
+                // Update status to show error
+                const statusElement = document.getElementById('roomStatus');
+                statusElement.textContent = 'CONNECTION ERROR';
+                statusElement.className = 'status error';
+                
+                retryCount++;
+                
+                if (retryCount >= MAX_RETRIES) {
+                    updateConnectionStatus(false, '● Failed');
+                    document.getElementById('nextName').textContent = 'Unable to connect to calendar service';
+                    document.getElementById('nextTime').textContent = 'Check network and backend server';
+                }
+            }
+        }
+
+        async function fetchTodayEvents() {
+            try {
+                const response = await fetch(`${API_BASE_URL}/events/today`);
+                const data = await response.json();
+                
+                console.log('Today\'s events:', data);
+                
+                if (data.success) {
+                    eventsData = data.events || [];
+                    renderTodayEvents();
+                }
+            } catch (error) {
+                console.error('Error fetching today\'s events:', error);
+            }
+        }
+
+        function updateRoomStatus(data) {
+            const statusElement = document.getElementById('roomStatus');
+            const { isOccupied, currentEvent, nextEvent } = data;
+            
+            console.log('Updating room status:', { isOccupied, currentEvent: currentEvent?.subject, nextEvent: nextEvent?.subject });
+            
+            // Update room availability status
+            if (isOccupied && currentEvent) {
+                statusElement.textContent = 'OCCUPIED';
+                statusElement.className = 'status occupied';
+            } else {
+                statusElement.textContent = 'AVAILABLE';
+                statusElement.className = 'status';
+            }
+            
+            // Update next booking info
+            if (nextEvent) {
+                document.getElementById('nextTime').textContent = nextEvent.timeRange;
+                document.getElementById('nextName').textContent = nextEvent.subject || nextEvent.organizer;
+            } else {
+                document.getElementById('nextTime').textContent = 'No more bookings';
+                document.getElementById('nextName').textContent = 'Room available for the rest of the day';
+            }
+        }
+
+        function renderTodayEvents() {
+            const container = document.getElementById('todayEvents');
+            
+            if (!eventsData || eventsData.length === 0) {
+                container.innerHTML = '<div class="no-events">No meetings scheduled for today</div>';
+                return;
+            }
+            
+            const eventsHtml = eventsData.map(event => `
+                <div class="event">
+                    <div class="event-time">${event.timeRange}</div>
+                    <div class="event-details">
+                        <div class="event-name">${event.subject || event.organizer}</div>
+                        <div class="event-email">${event.organizerEmail}</div>
+                    </div>
+                </div>
+            `).join('');
+            
+            container.innerHTML = eventsHtml;
+        }
+
+        // Test API connectivity on load
+        async function testConnection() {
+            try {
+                console.log('Testing API connection...');
+                const response = await fetch(`${API_BASE_URL}/status`);
+                const data = await response.json();
+                
+                console.log('API test result:', data);
+                
+                if (data.success) {
+                    console.log('✅ API connection successful:', data.message);
+                    console.log('📧 Room:', data.roomEmail);
+                    console.log('🏢 Display Name:', data.roomDisplayName);
+                    
+                    updateConnectionStatus(true);
+                    // Start fetching real data
+                    fetchCalendarData();
+                } else {
+                    throw new Error(data.error);
+                }
+            } catch (error) {
+                console.error('❌ API connection test failed:', error);
+                updateConnectionStatus(false, '● Connection Failed');
+                
+                // Show fallback message
+                const statusElement = document.getElementById('roomStatus');
+                statusElement.textContent = 'OFFLINE MODE';
+                statusElement.className = 'status error';
+                document.getElementById('nextName').textContent = 'Calendar service unavailable';
+                document.getElementById('nextTime').textContent = 'Start backend server (node server.js)';
+                
+                // Show helpful error message
+                document.getElementById('todayEvents').innerHTML = `
+                    <div class="no-events">
+                        <div>Backend server not running</div>
+                        <div style="font-size: 1rem; margin-top: 10px; opacity: 0.7;">
+                            Run: <code>node server.js</code>
+                        </div>
+                    </div>
+                `;
+            }
+        }
+
+        // Update time every second
+        setInterval(() => {
+            updateTime();
+            updateLastUpdated();
+        }, 1000);
+        
+        // Fetch calendar data every 30 seconds
+        setInterval(() => {
+            if (retryCount < MAX_RETRIES) {
+                fetchCalendarData();
+            }
+        }, 30000);
+        
+        // Initial updates
+        updateTime();
+        testConnection();
+        
+        // Retry connection every 5 minutes if failed
+        setInterval(() => {
+            if (!isConnected && retryCount >= MAX_RETRIES) {
+                console.log('Retrying connection...');
+                retryCount = 0;
+                testConnection();
+            }
+        }, 300000);
+
+        // Log configuration on load
+        console.log('🚀 Room Display Started');
+        console.log('📡 API Base URL:', API_BASE_URL);
+        console.log('📧 Room Email: driven.mtr@sld.com');
+        console.log('🔧 Tenant ID: ae195480-3465-4928-b5ce-dd93fb93cebf');
+    </script>
+</body>
+</html>
