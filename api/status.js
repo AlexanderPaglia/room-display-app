@@ -1,6 +1,5 @@
 // /api/status.js
-
-const axios = require('axios');
+// Using built-in fetch instead of axios to avoid dependency issues
 
 // Configuration will be read from Environment Variables on Vercel
 const CONFIG = {
@@ -18,7 +17,6 @@ let tokenCache = {
     expires: null
 };
 
-// This function is copied directly from your original server.js
 async function getAccessToken() {
     if (tokenCache.token && tokenCache.expires && new Date() < tokenCache.expires) {
         return tokenCache.token;
@@ -31,17 +29,23 @@ async function getAccessToken() {
     params.append('scope', CONFIG.scope);
     params.append('grant_type', 'client_credentials');
 
-    const response = await axios.post(tokenUrl, params, {
-        headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
+    const response = await fetch(tokenUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: params
     });
 
-    const { access_token, expires_in } = response.data;
+    if (!response.ok) {
+        throw new Error(`Token request failed: ${response.status}`);
+    }
+
+    const data = await response.json();
+    const { access_token, expires_in } = data;
     tokenCache.token = access_token;
     tokenCache.expires = new Date(Date.now() + (expires_in - 300) * 1000);
     return access_token;
 }
 
-// This function is also copied directly from your original server.js
 async function getTodayEvents() {
     const accessToken = await getAccessToken();
     const today = new Date();
@@ -52,7 +56,7 @@ async function getTodayEvents() {
 
     const graphUrl = `https://graph.microsoft.com/v1.0/users/${CONFIG.roomEmail}/calendar/calendarView?startDateTime=${startTime}&endDateTime=${endTime}&$orderby=start/dateTime&$top=50`;
 
-    const response = await axios.get(graphUrl, {
+    const response = await fetch(graphUrl, {
         headers: {
             'Authorization': `Bearer ${accessToken}`,
             'Content-Type': 'application/json',
@@ -60,8 +64,13 @@ async function getTodayEvents() {
         }
     });
 
-    // This logic is adapted from your original server.js
-    return (response.data.value || []).map(event => {
+    if (!response.ok) {
+        throw new Error(`Graph API request failed: ${response.status}`);
+    }
+
+    const data = await response.json();
+
+    return (data.value || []).map(event => {
         const eventStart = new Date(event.start.dateTime);
         const eventEnd = new Date(event.end.dateTime);
         return {
@@ -75,8 +84,6 @@ async function getTodayEvents() {
     });
 }
 
-// This is the main Vercel Serverless Function handler.
-// It replaces the `app.get('/api/room/status', ...)` from your old server.
 export default async function handler(req, res) {
     try {
         const events = await getTodayEvents();
@@ -84,7 +91,7 @@ export default async function handler(req, res) {
         const currentEvent = events.find(event => now >= event.startTime && now < event.endTime);
         const nextEvent = events.find(event => event.startTime > now);
 
-        // Allow requests from any origin, which is needed for local testing and Cordova.
+        // CORS headers
         res.setHeader('Access-Control-Allow-Origin', '*');
         res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
         res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
